@@ -6,3 +6,4 @@ venv/
 *.egg-info/
 corpCode.xml
 corpCode.zip
+docs_cache/
