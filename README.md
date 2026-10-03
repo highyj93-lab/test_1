@@ -25,5 +25,9 @@ xml_bytes = client.download_corp_codes()                  # 고유번호 전체 
 ## 연결 테스트
 
 ```bash
-python examples/test_connection.py
+python examples/test_connection.py        # 직접 작성한 dart_api 클라이언트
+python examples/test_opendartreader.py    # OpenDartReader 라이브러리
 ```
+
+`OpenDartReader`는 DART Open API의 거의 모든 엔드포인트(재무제표, 지분공시, 사업보고서 등)를
+감싸는 서드파티 라이브러리로, `requirements.txt`에 포함되어 있습니다.
