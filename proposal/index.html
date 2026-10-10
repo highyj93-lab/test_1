@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Will you marry me?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Cinzel:wght@400;500&family=Nanum+Myeongjo:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy-0: #070b1a;
+    --navy-1: #111a33;
+    --navy-2: #1d2a4d;
+    --gold: #d8bf8a;
+    --gold-soft: rgba(216, 191, 138, .55);
+    --cream: #f7f1e1;
+    --ink: #2c2a35;
+    --rose: #b5566d;
+    --rose-light: #e09aa9;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: var(--navy-0);
+    color: var(--cream);
+    font-family: "Nanum Myeongjo", serif;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: radial-gradient(ellipse at 50% 30%, var(--navy-2) 0%, var(--navy-1) 45%, var(--navy-0) 100%);
+  }
+  #bokeh { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; }
+
+  /* 액자 테두리 */
+  .frame {
+    position: fixed; inset: 10px; z-index: 1; pointer-events: none;
+    border: 1px solid var(--gold-soft);
+    box-shadow: inset 0 0 0 4px rgba(7, 11, 26, .6), inset 0 0 0 5px rgba(216, 191, 138, .25);
+  }
+  .vine { position: fixed; width: 120px; height: 120px; z-index: 2; pointer-events: none; opacity: .85; }
+  .vine.tl { top: 10px; left: 14px; }
+  .vine.br { bottom: 10px; right: 14px; transform: rotate(180deg); transition: opacity 1.5s; }
+  body.done .vine.br { opacity: 0; }
+  .vine path.leaf { fill: #b99a63; }
+  .vine path.stem { stroke: #b99a63; fill: none; stroke-width: 2; stroke-linecap: round; }
+
+  .screen {
+    position: fixed; inset: 0; z-index: 3;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    transition: opacity 1.4s ease, transform 1.4s ease;
+  }
+  .screen.hidden { opacity: 0; pointer-events: none; transform: scale(.98); }
+
+  /* ── 인트로 ── */
+  #intro { cursor: pointer; gap: 18px; z-index: 20; background: rgba(7, 11, 26, .55); }
+  #intro .heart { font-size: 34px; color: var(--rose-light); animation: beat 1.6s ease-in-out infinite; }
+  #intro p { font-family: "Cinzel", serif; letter-spacing: .35em; font-size: 13px; color: var(--gold); }
+  #intro small { font-size: 12px; color: rgba(247, 241, 225, .6); letter-spacing: .1em; }
+  @keyframes beat { 0%,100% { transform: scale(1); } 15% { transform: scale(1.18); } 30% { transform: scale(1); } 45% { transform: scale(1.12); } }
+
+  /* ── 질문 화면 ── */
+  #question h1 {
+    font-family: "Great Vibes", cursive; font-weight: 400;
+    font-size: clamp(44px, 9vw, 88px);
+    color: #f3ead2;
+    text-shadow: 0 0 18px rgba(243, 234, 210, .35), 0 2px 2px rgba(0,0,0,.4);
+    margin-bottom: 6px;
+    opacity: 0; animation: rise 2s .3s ease forwards;
+  }
+  #question .sub {
+    font-size: clamp(13px, 2.4vw, 16px); color: rgba(247, 241, 225, .85); letter-spacing: .08em;
+    opacity: 0; animation: rise 2s 1s ease forwards;
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+  .buttons {
+    display: flex; gap: clamp(60px, 18vw, 220px); margin-top: clamp(40px, 9vh, 80px);
+    opacity: 0; animation: rise 2s 1.6s ease forwards;
+  }
+  .btn {
+    width: 120px; height: 44px;
+    font-family: "Cinzel", serif; font-size: 13px; letter-spacing: .3em;
+    border-radius: 2px; cursor: pointer; outline: none;
+  }
+  #yes {
+    color: #fff3f5; background: linear-gradient(180deg, #c06279, #9c4459);
+    border: 1px solid #f0b7c4;
+    box-shadow: 0 0 0 2px rgba(181, 86, 109, .35), 0 0 22px rgba(224, 120, 145, .75);
+    transition: transform .35s cubic-bezier(.3,1.6,.5,1), box-shadow .3s;
+    animation: glow 2.6s ease-in-out infinite;
+  }
+  #yes:hover { box-shadow: 0 0 0 2px rgba(181, 86, 109, .5), 0 0 36px rgba(240, 140, 165, .95); }
+  @keyframes glow { 50% { box-shadow: 0 0 0 2px rgba(181, 86, 109, .45), 0 0 32px rgba(240, 140, 165, .9); } }
+  #no-slot { width: 120px; height: 44px; }
+  #no {
+    position: fixed; left: 0; top: 0; z-index: 5;
+    color: rgba(247, 241, 225, .7);
+    background: rgba(40, 52, 82, .75);
+    border: 1px solid rgba(160, 175, 210, .25);
+    will-change: transform;
+    visibility: hidden;
+    touch-action: none;
+  }
+  #toast {
+    position: fixed; left: 50%; bottom: 13%; transform: translateX(-50%) translateY(10px);
+    font-size: 14px; color: var(--rose-light); letter-spacing: .06em;
+    opacity: 0; transition: opacity .4s, transform .4s; z-index: 6; pointer-events: none;
+    text-shadow: 0 0 10px rgba(224, 154, 169, .5);
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── 결과: 혼인서약서 ── */
+  #result { background: radial-gradient(ellipse at center, rgba(40, 52, 90, .35), rgba(7, 11, 26, .2) 70%); }
+  .vow {
+    position: relative;
+    width: min(500px, 90vw);
+    padding: clamp(28px, 6vw, 44px) clamp(22px, 6vw, 48px) clamp(24px, 5vw, 34px);
+    background: linear-gradient(180deg, #fbf6e8, #f3ebd6);
+    color: var(--ink);
+    text-align: center;
+    box-shadow: 0 0 80px rgba(247, 241, 225, .18), 0 30px 60px rgba(0, 0, 0, .55);
+    transform: translateY(30px) scale(.96); opacity: 0;
+    transition: transform 1.6s cubic-bezier(.2,.8,.2,1) .4s, opacity 1.6s ease .4s;
+  }
+  #result.show .vow { transform: none; opacity: 1; }
+  .vow::before {
+    content: ""; position: absolute; inset: 9px;
+    border: 1px solid rgba(185, 154, 99, .6);
+    pointer-events: none;
+  }
+  .vow::after {
+    content: ""; position: absolute; inset: 13px;
+    border: 1px solid rgba(185, 154, 99, .25);
+    pointer-events: none;
+  }
+  .vow .script {
+    font-family: "Great Vibes", cursive; font-size: clamp(24px, 5vw, 30px);
+    color: #b99a63; line-height: 1;
+  }
+  .vow h2 {
+    font-weight: 400; font-size: clamp(30px, 7vw, 40px); letter-spacing: .14em;
+    margin: 10px 0 18px; color: #2a2f45;
+  }
+  .rule { width: 46%; height: 1px; margin: 0 auto; background: linear-gradient(90deg, transparent, #b99a63, transparent); }
+  .vow .lines { margin: 22px 0 22px; font-size: clamp(12px, 2.7vw, 14px); line-height: 2; color: #4a4655; }
+  .vow .lines span { display: block; opacity: 0; transform: translateY(6px); transition: opacity 1s, transform 1s; }
+  #result.show .lines span:nth-child(1) { transition-delay: 1.8s; }
+  #result.show .lines span:nth-child(2) { transition-delay: 2.5s; }
+  #result.show .lines span:nth-child(3) { transition-delay: 3.2s; }
+  #result.show .lines span { opacity: 1; transform: none; }
+  .names {
+    position: relative; display: inline-block;
+    font-family: "Nanum Pen Script", "Nanum Myeongjo", cursive;
+    font-size: clamp(30px, 7vw, 40px); color: #2a2f45; margin-bottom: 14px;
+    clip-path: inset(0 100% 0 0);
+    transition: clip-path 2.6s steps(40, end) 4s;
+  }
+  #result.show .names { clip-path: inset(0 0 0 0); }
+  .names .amp { color: #b5566d; margin: 0 .25em; }
+  .result-line {
+    margin-top: 18px; font-size: clamp(11px, 2.4vw, 13px); color: #6a6474;
+    display: flex; justify-content: center; gap: 1.4em; align-items: baseline;
+  }
+  .result-line b { font-weight: 700; color: #2a2f45; }
+  .result-line em { font-style: normal; color: #b5566d; }
+  .stamp {
+    position: absolute; right: clamp(18px, 6vw, 40px); bottom: clamp(30px, 7vw, 46px);
+    width: 64px; height: 64px; border-radius: 50%;
+    border: 2px solid rgba(181, 52, 70, .75); color: rgba(181, 52, 70, .85);
+    display: flex; align-items: center; justify-content: center; text-align: center;
+    font-size: 13px; font-weight: 700; line-height: 1.15;
+    transform: rotate(-14deg) scale(2.4); opacity: 0;
+    transition: transform .35s cubic-bezier(.5,2,.5,.8) 7s, opacity .25s 7s;
+  }
+  #result.show .stamp { transform: rotate(-14deg) scale(1); opacity: 1; }
+  .date { margin-top: 10px; font-size: 11px; color: #8d8697; letter-spacing: .12em; }
+
+  #credit {
+    position: fixed; right: 26px; bottom: 20px; z-index: 8;
+    font-family: "Nanum Myeongjo", serif; font-size: 11px; letter-spacing: .1em;
+    color: rgba(216, 191, 138, .7);
+    opacity: 0; transition: opacity 2s ease 8s;
+  }
+  #result.show #credit { opacity: 1; }
+
+  #music {
+    position: fixed; top: 22px; right: 26px; z-index: 30;
+    width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(17, 26, 51, .6); border: 1px solid var(--gold-soft);
+    color: var(--gold); font-size: 15px; cursor: pointer;
+    display: none; align-items: center; justify-content: center;
+  }
+  #music.on { display: flex; }
+  #music.muted { opacity: .45; text-decoration: line-through; }
+
+  #petals { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
+</style>
+</head>
+<body>
+<canvas id="bokeh"></canvas>
+<div class="frame"></div>
+
+<svg class="vine tl" viewBox="0 0 120 120" aria-hidden="true">
+  <path class="stem" d="M8 6 C 30 30, 46 52, 60 90"/>
+  <path class="leaf" d="M16 16 c -10 -2 -14 6 -12 10 c 6 0 12 -4 12 -10z"/>
+  <path class="leaf" d="M22 22 c 4 -10 14 -10 16 -6 c -4 6 -10 8 -16 6z"/>
+  <path class="leaf" d="M32 36 c -10 0 -14 8 -10 12 c 6 -1 10 -6 10 -12z"/>
+  <path class="leaf" d="M38 44 c 6 -9 15 -7 16 -2 c -5 5 -11 5 -16 2z"/>
+  <path class="leaf" d="M46 60 c -10 1 -13 10 -9 13 c 6 -2 9 -7 9 -13z"/>
+  <path class="leaf" d="M51 68 c 6 -8 15 -5 15 0 c -5 4 -11 4 -15 0z"/>
+  <path class="leaf" d="M57 82 c -8 3 -9 11 -5 13 c 5 -3 6 -8 5 -13z"/>
+</svg>
+<svg class="vine br" viewBox="0 0 120 120" aria-hidden="true">
+  <path class="stem" d="M8 6 C 30 30, 46 52, 60 90"/>
+  <path class="leaf" d="M16 16 c -10 -2 -14 6 -12 10 c 6 0 12 -4 12 -10z"/>
+  <path class="leaf" d="M22 22 c 4 -10 14 -10 16 -6 c -4 6 -10 8 -16 6z"/>
+  <path class="leaf" d="M32 36 c -10 0 -14 8 -10 12 c 6 -1 10 -6 10 -12z"/>
+  <path class="leaf" d="M38 44 c 6 -9 15 -7 16 -2 c -5 5 -11 5 -16 2z"/>
+  <path class="leaf" d="M46 60 c -10 1 -13 10 -9 13 c 6 -2 9 -7 9 -13z"/>
+  <path class="leaf" d="M51 68 c 6 -8 15 -5 15 0 c -5 4 -11 4 -15 0z"/>
+  <path class="leaf" d="M57 82 c -8 3 -9 11 -5 13 c 5 -3 6 -8 5 -13z"/>
+</svg>
+
+<!-- 인트로: 브라우저 자동재생 정책 때문에 첫 터치로 음악을 시작 -->
+<section id="intro" class="screen">
+  <div class="heart">♥</div>
+  <p>TOUCH TO OPEN</p>
+  <small>화면을 눌러주세요</small>
+</section>
+
+<section id="question" class="screen hidden">
+  <h1>Will you marry me?</h1>
+  <p class="sub">저랑 결혼해 주실래요?</p>
+  <div class="buttons">
+    <button id="yes" class="btn">YES</button>
+    <div id="no-slot"></div>
+  </div>
+</section>
+<button id="no" class="btn" tabindex="-1">NO</button>
+<div id="toast"></div>
+
+<canvas id="petals"></canvas>
+
+<section id="result" class="screen hidden">
+  <div class="vow">
+    <div class="script">marriage vows</div>
+    <h2>혼인서약서</h2>
+    <div class="rule"></div>
+    <div class="lines">
+      <span>평생을 함께하겠습니다</span>
+      <span>우리는 행복하게 늙어가겠습니다</span>
+      <span>합시다 뽀뽀</span>
+    </div>
+    <div class="names">김연준<span class="amp">&amp;</span>신우정</div>
+    <div class="rule"></div>
+    <div class="result-line"><span>결과 :</span><span><b>신우정</b>의 승낙 <em>(거절 불가)</em></span></div>
+    <div class="date" id="date"></div>
+    <div class="stamp">승낙<br>完</div>
+  </div>
+  <div id="credit">made by 연준</div>
+</section>
+
+<button id="music" aria-label="음악 켜기/끄기">♪</button>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ================================================================
+   *  1. 배경 보케 (흐릿한 빛 방울 + 반짝이)
+   * ================================================================ */
+  const bokeh = document.getElementById('bokeh');
+  const bctx = bokeh.getContext('2d');
+  let W = 0, H = 0, DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const orbs = [], sparks = [];
+
+  function resizeCanvas(c, ctx) {
+    c.width = W * DPR; c.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  function seedBokeh() {
+    orbs.length = 0; sparks.length = 0;
+    const n = Math.round((W * H) / 38000) + 10;
+    for (let i = 0; i < n; i++) {
+      orbs.push({
+        x: Math.random() * W, y: Math.random() * H,
+        r: 14 + Math.random() * 46,
+        a: .03 + Math.random() * .09,
+        vx: (Math.random() - .5) * 6, vy: -2 - Math.random() * 6,
+        hue: Math.random() < .7 ? '230,215,180' : '170,190,235',
+        ph: Math.random() * Math.PI * 2,
+      });
+    }
+    for (let i = 0; i < n * 1.4; i++) {
+      sparks.push({ x: Math.random() * W, y: Math.random() * H, r: .5 + Math.random() * 1.2, ph: Math.random() * 6.28, sp: .5 + Math.random() * 1.5 });
+    }
+  }
+  function drawBokeh(t, dt) {
+    bctx.clearRect(0, 0, W, H);
+    for (const o of orbs) {
+      o.x += o.vx * dt; o.y += o.vy * dt;
+      if (o.y < -o.r) { o.y = H + o.r; o.x = Math.random() * W; }
+      if (o.x < -o.r) o.x = W + o.r; else if (o.x > W + o.r) o.x = -o.r;
+      const a = o.a * (0.7 + 0.3 * Math.sin(t * .4 + o.ph));
+      const g = bctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
+      g.addColorStop(0, `rgba(${o.hue},${a})`);
+      g.addColorStop(.7, `rgba(${o.hue},${a * .6})`);
+      g.addColorStop(1, `rgba(${o.hue},0)`);
+      bctx.fillStyle = g;
+      bctx.beginPath(); bctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); bctx.fill();
+    }
+    for (const s of sparks) {
+      const a = Math.max(0, Math.sin(t * s.sp + s.ph)) * .8;
+      bctx.fillStyle = `rgba(240,215,160,${a})`;
+      bctx.beginPath(); bctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); bctx.fill();
+    }
+  }
+
+  /* ================================================================
+   *  2. 결과 화면 꽃잎
+   * ================================================================ */
+  const petalCv = document.getElementById('petals');
+  const pctx = petalCv.getContext('2d');
+  const petals = [];
+  let petalsOn = false;
+  function spawnPetal(top) {
+    petals.push({
+      x: Math.random() * W, y: top ? -20 : Math.random() * H,
+      s: 5 + Math.random() * 7,
+      vy: 25 + Math.random() * 45, vx: -10 + Math.random() * 20,
+      rot: Math.random() * 6.28, vr: (Math.random() - .5) * 2.4,
+      sw: Math.random() * 6.28, col: Math.random() < .6 ? '240,190,200' : '250,240,225',
+    });
+  }
+  function drawPetals(t, dt) {
+    pctx.clearRect(0, 0, W, H);
+    if (!petalsOn) return;
+    if (petals.length < 70 && Math.random() < .5) spawnPetal(true);
+    for (let i = petals.length - 1; i >= 0; i--) {
+      const p = petals[i];
+      p.y += p.vy * dt; p.x += (p.vx + Math.sin(t * 1.3 + p.sw) * 22) * dt; p.rot += p.vr * dt;
+      if (p.y > H + 30) { petals.splice(i, 1); continue; }
+      pctx.save();
+      pctx.translate(p.x, p.y); pctx.rotate(p.rot);
+      pctx.scale(1, .55 + .45 * Math.sin(t * 2 + p.sw));
+      pctx.fillStyle = `rgba(${p.col},.85)`;
+      pctx.beginPath();
+      pctx.moveTo(0, -p.s);
+      pctx.bezierCurveTo(p.s, -p.s * .6, p.s * .7, p.s * .7, 0, p.s);
+      pctx.bezierCurveTo(-p.s * .7, p.s * .7, -p.s, -p.s * .6, 0, -p.s);
+      pctx.fill();
+      pctx.restore();
+    }
+  }
+
+  /* ================================================================
+   *  3. NO 버튼 물리엔진
+   *     - 커서와 버튼 사이 거리를 매 프레임 계산
+   *     - 반경 안에 들어오면 커서 반대 방향으로 가속도 부여
+   *     - 커서가 빠르게 다가올수록 가속도 증가
+   *     - 벽: 반발계수로 부드럽게 튕기고, 벽에 눌리면 테두리를 따라 미끄러짐
+   * ================================================================ */
+  const noBtn = document.getElementById('no');
+  const yesBtn = document.getElementById('yes');
+  const slot = document.getElementById('no-slot');
+
+  const PHYS = {
+    radius: 150,        // 도망 반경 (버튼 가장자리 기준, px)
+    baseAccel: 5200,    // 반경 진입 시 기본 가속도 (px/s²)
+    approachGain: 14,   // 커서 접근 속도 1px/s 당 추가 가속도
+    damping: 2.6,       // 공기저항 (1/s)
+    maxSpeed: 2800,     // 최대 속도 (px/s)
+    restitution: .55,   // 벽 반발계수 (0: 붙음, 1: 완전탄성)
+    wallFriction: 1.2,  // 벽에 붙어 미끄러질 때 마찰 (1/s)
+    slideBoost: 1.35,   // 벽/모서리에 몰렸을 때 접선 방향 탈출 가속도 배율
+    margin: 22,         // 화면 가장자리 여백
+  };
+
+  const btn = { x: 0, y: 0, vx: 0, vy: 0, w: 120, h: 44, ready: false };
+  const mouse = { x: -9999, y: -9999, vx: 0, vy: 0, t: 0, active: false };
+
+  function placeNoAtSlot() {
+    const r = slot.getBoundingClientRect();
+    btn.w = noBtn.offsetWidth; btn.h = noBtn.offsetHeight;
+    btn.x = r.left + r.width / 2; btn.y = r.top + r.height / 2;
+    btn.vx = btn.vy = 0;
+    btn.ready = true;
+    renderNo();
+  }
+
+  function trackPointer(x, y, now) {
+    if (mouse.active) {
+      const dt = Math.max(1, now - mouse.t) / 1000;
+      // 순간 속도를 지수 평활화해서 떨림 없이 '접근 속도'를 얻음
+      const ivx = (x - mouse.x) / dt, ivy = (y - mouse.y) / dt;
+      const k = Math.min(1, dt * 18);
+      mouse.vx += (ivx - mouse.vx) * k;
+      mouse.vy += (ivy - mouse.vy) * k;
+    }
+    mouse.x = x; mouse.y = y; mouse.t = now; mouse.active = true;
+  }
+  window.addEventListener('pointermove', e => trackPointer(e.clientX, e.clientY, performance.now()), { passive: true });
+  window.addEventListener('pointerdown', e => trackPointer(e.clientX, e.clientY, performance.now()), { passive: true });
+  document.addEventListener('pointerleave', () => { mouse.active = false; });
+
+  function stepNo(dt) {
+    if (!btn.ready) return;
+    const hw = btn.w / 2, hh = btn.h / 2;
+    let ax = 0, ay = 0;
+
+    // 커서 → 버튼 벡터, 버튼 사각형 가장자리까지의 거리
+    const dx = btn.x - mouse.x, dy = btn.y - mouse.y;
+    const dist = Math.hypot(dx, dy) || 0.001;
+    const ex = Math.max(Math.abs(dx) - hw, 0), ey = Math.max(Math.abs(dy) - hh, 0);
+    const edgeDist = Math.hypot(ex, ey);
+
+    const minX = PHYS.margin + hw, maxX = W - PHYS.margin - hw;
+    const minY = PHYS.margin + hh, maxY = H - PHYS.margin - hh;
+    const onL = btn.x <= minX + 0.5, onR = btn.x >= maxX - 0.5;
+    const onT = btn.y <= minY + 0.5, onB = btn.y >= maxY - 0.5;
+
+    // 마우스 속도는 움직임이 멈추면 서서히 0으로
+    mouse.vx *= Math.exp(-6 * dt); mouse.vy *= Math.exp(-6 * dt);
+
+    if (mouse.active && edgeDist < PHYS.radius) {
+      const nx = dx / dist, ny = dy / dist;                     // 커서 반대 방향 단위벡터
+      const prox = 1 - edgeDist / PHYS.radius;                   // 0(경계) ~ 1(맞닿음)
+      const approach = Math.max(0, mouse.vx * nx + mouse.vy * ny); // 커서가 버튼 쪽으로 오는 속도
+      const accel = (PHYS.baseAccel + approach * PHYS.approachGain) * Math.pow(prox, 1.4);
+      ax += nx * accel; ay += ny * accel;
+
+      // 벽/모서리에 몰렸을 때: 벽면을 따라(접선 방향) 커서를 피해 빠져나감
+      const boost = accel * PHYS.slideBoost;
+      const hitX = onL || onR, hitY = onT || onB;
+      if (hitX && hitY) {
+        // 모서리: 커서가 덜 막고 있는 벽을 타고 중앙 쪽으로 탈출
+        if (Math.abs(dy) >= Math.abs(dx)) ax += Math.sign(W / 2 - btn.x) * boost;
+        else ay += Math.sign(H / 2 - btn.y) * boost;
+      } else if (hitX) {
+        const dir = Math.abs(dy) > hh * .3 ? Math.sign(dy) : Math.sign(H / 2 - btn.y);
+        ay += dir * boost;
+      } else if (hitY) {
+        const dir = Math.abs(dx) > hw * .3 ? Math.sign(dx) : Math.sign(W / 2 - btn.x);
+        ax += dir * boost;
+      }
+    }
+
+    // 적분 (semi-implicit Euler)
+    btn.vx += ax * dt; btn.vy += ay * dt;
+    const damp = Math.exp(-PHYS.damping * dt);
+    btn.vx *= damp; btn.vy *= damp;
+    const sp = Math.hypot(btn.vx, btn.vy);
+    if (sp > PHYS.maxSpeed) { btn.vx *= PHYS.maxSpeed / sp; btn.vy *= PHYS.maxSpeed / sp; }
+    btn.x += btn.vx * dt; btn.y += btn.vy * dt;
+
+    // 벽 충돌: 법선 속도는 반발계수로 반사, 접선 속도는 약한 마찰만 → 테두리를 따라 미끄러짐
+    const wf = Math.exp(-PHYS.wallFriction * dt);
+    if (btn.x < minX) { btn.x = minX; if (btn.vx < 0) btn.vx = -btn.vx * PHYS.restitution; btn.vy *= wf; }
+    else if (btn.x > maxX) { btn.x = maxX; if (btn.vx > 0) btn.vx = -btn.vx * PHYS.restitution; btn.vy *= wf; }
+    if (btn.y < minY) { btn.y = minY; if (btn.vy < 0) btn.vy = -btn.vy * PHYS.restitution; btn.vx *= wf; }
+    else if (btn.y > maxY) { btn.y = maxY; if (btn.vy > 0) btn.vy = -btn.vy * PHYS.restitution; btn.vx *= wf; }
+
+    // YES 버튼은 단단한 장애물: 겹치면 최소 침투축으로 밀어내고 튕김
+    const yr = yesBtn.getBoundingClientRect();
+    const ycx = yr.left + yr.width / 2, ycy = yr.top + yr.height / 2;
+    const px = (yr.width / 2 + hw) - Math.abs(btn.x - ycx);
+    const py = (yr.height / 2 + hh) - Math.abs(btn.y - ycy);
+    if (px > 0 && py > 0) {
+      if (px < py) {
+        const s = Math.sign(btn.x - ycx) || 1;
+        btn.x += s * px;
+        if (btn.vx * s < 0) btn.vx = -btn.vx * PHYS.restitution;
+      } else {
+        const s = Math.sign(btn.y - ycy) || 1;
+        btn.y += s * py;
+        if (btn.vy * s < 0) btn.vy = -btn.vy * PHYS.restitution;
+      }
+    }
+  }
+
+  function renderNo() {
+    const tilt = Math.max(-12, Math.min(12, btn.vx * 0.012));
+    noBtn.style.transform = `translate(${btn.x - btn.w / 2}px, ${btn.y - btn.h / 2}px) rotate(${tilt}deg)`;
+  }
+
+  // 혹시라도 (터치 등으로) NO가 눌리면 → 멀리 순간이동 + YES가 커짐
+  const toast = document.getElementById('toast');
+  const toastMsgs = ['거절은 불가능합니다 💍', '다시 한 번 생각해 주세요 🥺', 'NO 버튼은 고장났어요', '정답은 YES 하나뿐!', '우정아… 진심이야 🥹'];
+  let noTries = 0, toastTimer = 0;
+  function dodge(e) {
+    e.preventDefault(); e.stopPropagation();
+    noTries++;
+    const ang = Math.random() * Math.PI * 2;
+    btn.vx = Math.cos(ang) * PHYS.maxSpeed; btn.vy = Math.sin(ang) * PHYS.maxSpeed;
+    yesBtn.style.transform = `scale(${Math.min(1 + noTries * 0.12, 1.8)})`;
+    toast.textContent = toastMsgs[(noTries - 1) % toastMsgs.length];
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 1800);
+  }
+  noBtn.addEventListener('pointerdown', dodge);
+  noBtn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); });
+
+  /* ================================================================
+   *  4. 음악 — 파헬벨 「캐논 D장조」(퍼블릭 도메인)를 Web Audio로 직접 연주
+   *     proposal/music.mp3 파일을 넣어두면 그 파일을 우선 재생
+   * ================================================================ */
+  const musicBtn = document.getElementById('music');
+  let audioCtx = null, master = null, synthTimer = 0, nextTime = 0, step = 0, muted = false;
+  let fileAudio = null;
+
+  const midiHz = m => 440 * Math.pow(2, (m - 69) / 12);
+  const BAR = 2.4;                                         // 코드 하나 길이(초)
+  const BASS = [50, 45, 47, 42, 43, 38, 43, 45];           // D A Bm F#m G D G A
+  const CHORDS = [
+    [62, 66, 69], [61, 64, 69], [62, 66, 71], [61, 66, 69],
+    [62, 67, 71], [62, 66, 69], [62, 67, 71], [61, 64, 69],
+  ];
+  const MELODY = [78, 76, 74, 73, 71, 69, 71, 73];         // 바이올린 주선율
+  const HARMONY = [74, 73, 71, 69, 67, 66, 67, 64];        // 3도 아래 화음
+
+  function makeReverb(ctx) {
+    const len = ctx.sampleRate * 3.2;
+    const buf = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = buf.getChannelData(ch);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.6);
+    }
+    const conv = ctx.createConvolver(); conv.buffer = buf; return conv;
+  }
+
+  function piano(m, t, vel, dur = 2.6) {
+    const f = midiHz(m);
+    const g = audioCtx.createGain();
+    const lp = audioCtx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vel, t + 0.008);
+    g.gain.exponentialRampToValueAtTime(vel * 0.35, t + 0.4);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    [[1, 'sine', 1], [2, 'triangle', .22], [3, 'sine', .06]].forEach(([mul, type, amp]) => {
+      const o = audioCtx.createOscillator(); o.type = type; o.frequency.value = f * mul;
+      const og = audioCtx.createGain(); og.gain.value = amp;
+      o.connect(og).connect(lp); o.start(t); o.stop(t + dur + .05);
+    });
+    lp.connect(g).connect(master);
+  }
+
+  function strings(m, t, dur, vel) {
+    const f = midiHz(m);
+    const g = audioCtx.createGain();
+    const lp = audioCtx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1700; lp.Q.value = .4;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vel, t + dur * .35);
+    g.gain.setValueAtTime(vel, t + dur * .7);
+    g.gain.linearRampToValueAtTime(0, t + dur + .5);
+    const vib = audioCtx.createOscillator(); vib.frequency.value = 5;
+    const vibAmt = audioCtx.createGain(); vibAmt.gain.value = f * 0.004;
+    vib.connect(vibAmt);
+    [-4, 4].forEach(det => {
+      const o = audioCtx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = det;
+      vibAmt.connect(o.frequency);
+      o.connect(lp); o.start(t); o.stop(t + dur + .6);
+    });
+    vib.start(t); vib.stop(t + dur + .6);
+    lp.connect(g).connect(master);
+  }
+
+  function scheduleBar(i, t) {
+    const loop = Math.floor(i / 8), k = i % 8;
+    const chord = CHORDS[k];
+    // 베이스 (첼로 역할)
+    piano(BASS[k], t, .30, BAR + 1.2);
+    piano(BASS[k] - 12, t, .12, BAR + 1.2);
+    // 분산화음 아르페지오: 8분음표 8개
+    const pattern = [chord[0], chord[1], chord[2], chord[1] + 12, chord[2], chord[1], chord[0] + 12, chord[1]];
+    const eighth = BAR / 8;
+    pattern.forEach((n, j) => piano(n, t + j * eighth, j === 0 ? .13 : .085));
+    // 2바퀴째부터 바이올린 선율, 3바퀴째부터 화음까지
+    if (loop % 4 >= 1) strings(MELODY[k], t, BAR, .045);
+    if (loop % 4 >= 2) strings(HARMONY[k], t, BAR, .03);
+    if (loop % 4 === 3) piano(MELODY[k] + 12, t + BAR / 2, .05, 3);
+  }
+
+  function synthScheduler() {
+    while (nextTime < audioCtx.currentTime + 1.5) {
+      scheduleBar(step++, nextTime);
+      nextTime += BAR;
+    }
+  }
+
+  function startSynth() {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    master = audioCtx.createGain(); master.gain.value = 0;
+    const comp = audioCtx.createDynamicsCompressor();
+    const dry = audioCtx.createGain(); dry.gain.value = .75;
+    const wet = audioCtx.createGain(); wet.gain.value = .45;
+    const rev = makeReverb(audioCtx);
+    master.connect(dry).connect(comp);
+    master.connect(rev).connect(wet).connect(comp);
+    comp.connect(audioCtx.destination);
+    master.gain.linearRampToValueAtTime(.9, audioCtx.currentTime + 4);   // 페이드 인
+    nextTime = audioCtx.currentTime + .15;
+    synthScheduler();
+    synthTimer = setInterval(synthScheduler, 250);
+  }
+
+  function startMusic() {
+    musicBtn.classList.add('on');
+    fileAudio = new Audio('music.mp3');
+    fileAudio.loop = true; fileAudio.volume = 0;
+    fileAudio.play().then(() => {
+      let v = 0; const fi = setInterval(() => { v = Math.min(.7, v + .02); fileAudio.volume = v; if (v >= .7) clearInterval(fi); }, 100);
+    }).catch(() => { fileAudio = null; startSynth(); });
+  }
+
+  musicBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    muted = !muted;
+    musicBtn.classList.toggle('muted', muted);
+    if (fileAudio) fileAudio.muted = muted;
+    if (audioCtx) master.gain.setTargetAtTime(muted ? 0 : .9, audioCtx.currentTime, .3);
+  });
+
+  /* ================================================================
+   *  5. 화면 전환
+   * ================================================================ */
+  const intro = document.getElementById('intro');
+  const question = document.getElementById('question');
+  const result = document.getElementById('result');
+
+  intro.addEventListener('click', () => {
+    startMusic();
+    intro.classList.add('hidden');
+    question.classList.remove('hidden');
+    // 버튼 등장 애니메이션(1.6s 지연) 이후 NO 버튼을 슬롯 위치에 배치
+    setTimeout(() => {
+      placeNoAtSlot();
+      noBtn.style.visibility = 'visible';
+      noBtn.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 1200, fill: 'forwards' });
+    }, 1700);
+  }, { once: true });
+
+  yesBtn.addEventListener('click', () => {
+    question.classList.add('hidden');
+    document.body.classList.add('done');
+    noBtn.style.transition = 'opacity 1s'; noBtn.style.opacity = '0';
+    setTimeout(() => { noBtn.style.display = 'none'; btn.ready = false; }, 1000);
+    toast.classList.remove('show');
+    const d = new Date();
+    document.getElementById('date').textContent = `${d.getFullYear()}. ${d.getMonth() + 1}. ${d.getDate()}.`;
+    setTimeout(() => {
+      result.classList.remove('hidden');
+      requestAnimationFrame(() => result.classList.add('show'));
+      petalsOn = true;
+      for (let i = 0; i < 25; i++) spawnPetal(false);
+    }, 700);
+  });
+
+  /* ================================================================
+   *  6. 메인 루프 / 리사이즈
+   * ================================================================ */
+  function onResize() {
+    W = window.innerWidth; H = window.innerHeight;
+    resizeCanvas(bokeh, bctx); resizeCanvas(petalCv, pctx);
+    seedBokeh();
+  }
+  window.addEventListener('resize', onResize);
+  onResize();
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.033, (now - last) / 1000); last = now;
+    const t = now / 1000;
+    drawBokeh(t, dt);
+    // 물리는 서브스텝으로 나눠서 빠른 속도에서도 벽을 뚫지 않게
+    if (btn.ready) {
+      const sub = 4;
+      for (let i = 0; i < sub; i++) stepNo(dt / sub);
+      renderNo();
+    }
+    drawPetals(t, dt);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
