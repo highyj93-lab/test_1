@@ -76,7 +76,7 @@
   @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
 
   .buttons {
-    display: flex; gap: clamp(60px, 18vw, 220px); margin-top: clamp(40px, 9vh, 80px);
+    display: flex; gap: 18px; margin-top: clamp(40px, 9vh, 80px);
     opacity: 0; animation: rise 2s 1.6s ease forwards;
   }
   .btn {
@@ -93,12 +93,14 @@
   }
   #yes:hover { box-shadow: 0 0 0 2px rgba(181, 86, 109, .5), 0 0 36px rgba(240, 140, 165, .95); }
   @keyframes glow { 50% { box-shadow: 0 0 0 2px rgba(181, 86, 109, .45), 0 0 32px rgba(240, 140, 165, .9); } }
-  #no-slot { width: 120px; height: 44px; }
-  #no {
-    position: fixed; left: 0; top: 0; z-index: 5;
+  #no-slot { display: flex; align-items: center; justify-content: center; }
+  #no-slot, #no {
     color: rgba(247, 241, 225, .7);
     background: rgba(40, 52, 82, .75);
     border: 1px solid rgba(160, 175, 210, .25);
+  }
+  #no {
+    position: fixed; left: 0; top: 0; z-index: 5;
     will-change: transform;
     visibility: hidden;
     touch-action: none;
@@ -111,7 +113,7 @@
   }
   #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-  /* ── 결과: 혼인서약서 ── */
+  /* ── 결과: 청혼서 ── */
   #result { background: radial-gradient(ellipse at center, rgba(40, 52, 90, .35), rgba(7, 11, 26, .2) 70%); }
   .vow {
     position: relative;
@@ -140,22 +142,23 @@
     color: #b99a63; line-height: 1;
   }
   .vow h2 {
-    font-weight: 400; font-size: clamp(30px, 7vw, 40px); letter-spacing: .14em;
-    margin: 10px 0 18px; color: #2a2f45;
+    font-weight: 400; font-size: clamp(30px, 7vw, 40px); letter-spacing: .3em; text-indent: .3em;
+    margin: 8px 0 14px; color: #2a2f45;
   }
   .rule { width: 46%; height: 1px; margin: 0 auto; background: linear-gradient(90deg, transparent, #b99a63, transparent); }
-  .vow .lines { margin: 22px 0 22px; font-size: clamp(12px, 2.7vw, 14px); line-height: 2; color: #4a4655; }
-  .vow .lines span { display: block; opacity: 0; transform: translateY(6px); transition: opacity 1s, transform 1s; }
-  #result.show .lines span:nth-child(1) { transition-delay: 1.8s; }
-  #result.show .lines span:nth-child(2) { transition-delay: 2.5s; }
-  #result.show .lines span:nth-child(3) { transition-delay: 3.2s; }
+  .vow .lines { margin: 16px 0 14px; font-size: clamp(12px, 2.6vw, 13.5px); line-height: 1.85; color: #4a4655; }
+  .vow .lines span { display: block; opacity: 0; transform: translateY(6px); transition: opacity 1s, transform 1s; transition-delay: var(--d); }
+  .vow .lines .poem { font-style: italic; color: #5d5868; }
+  .vow .lines .gap { height: .7em; }
+  .vow .lines .src { font-size: 10.5px; color: #a39a86; letter-spacing: .04em; margin-bottom: .2em; }
+  .vow .lines .ask { color: #2a2f45; font-weight: 700; }
   #result.show .lines span { opacity: 1; transform: none; }
   .names {
     position: relative; display: inline-block;
     font-family: "Nanum Pen Script", "Nanum Myeongjo", cursive;
     font-size: clamp(30px, 7vw, 40px); color: #2a2f45; margin-bottom: 14px;
     clip-path: inset(0 100% 0 0);
-    transition: clip-path 2.6s steps(40, end) 4s;
+    transition: clip-path 2.6s steps(40, end) 7.2s;
   }
   #result.show .names { clip-path: inset(0 0 0 0); }
   .names .amp { color: #b5566d; margin: 0 .25em; }
@@ -172,7 +175,7 @@
     display: flex; align-items: center; justify-content: center; text-align: center;
     font-size: 13px; font-weight: 700; line-height: 1.15;
     transform: rotate(-14deg) scale(2.4); opacity: 0;
-    transition: transform .35s cubic-bezier(.5,2,.5,.8) 7s, opacity .25s 7s;
+    transition: transform .35s cubic-bezier(.5,2,.5,.8) 10.2s, opacity .25s 10.2s;
   }
   #result.show .stamp { transform: rotate(-14deg) scale(1); opacity: 1; }
   .date { margin-top: 10px; font-size: 11px; color: #8d8697; letter-spacing: .12em; }
@@ -181,7 +184,7 @@
     position: fixed; right: 26px; bottom: 20px; z-index: 8;
     font-family: "Nanum Myeongjo", serif; font-size: 11px; letter-spacing: .1em;
     color: rgba(216, 191, 138, .7);
-    opacity: 0; transition: opacity 2s ease 8s;
+    opacity: 0; transition: opacity 2s ease 11s;
   }
   #result.show #credit { opacity: 1; }
 
@@ -235,7 +238,7 @@
   <p class="sub">저랑 결혼해 주실래요?</p>
   <div class="buttons">
     <button id="yes" class="btn">YES</button>
-    <div id="no-slot"></div>
+    <div id="no-slot" class="btn" aria-hidden="true">NO</div>
   </div>
 </section>
 <button id="no" class="btn" tabindex="-1">NO</button>
@@ -245,17 +248,23 @@
 
 <section id="result" class="screen hidden">
   <div class="vow">
-    <div class="script">marriage vows</div>
-    <h2>혼인서약서</h2>
+    <div class="script">a proposal</div>
+    <h2>청혼서</h2>
     <div class="rule"></div>
     <div class="lines">
-      <span>평생을 함께하겠습니다</span>
-      <span>우리는 행복하게 늙어가겠습니다</span>
-      <span>합시다 뽀뽀</span>
+      <span class="poem" style="--d:1.6s">나는 오래된 거리처럼 너를 사랑하고</span>
+      <span class="poem" style="--d:2.2s">별들은 벌들처럼 웅성거리고</span>
+      <span class="poem" style="--d:2.8s">여름에는 작은 은색 드럼을 치는 것처럼</span>
+      <span class="poem" style="--d:3.4s">네 손바닥을 두드리는 비를 줄게</span>
+      <span class="src" style="--d:3.9s">— 진은영, 「청혼」에서 빌려 고쳐 씀</span>
+      <span class="gap"></span>
+      <span style="--d:4.8s">오래된 거리처럼 늘 같은 자리에서</span>
+      <span style="--d:5.4s">평생 너의 곁을 함께 걸어갈게</span>
+      <span class="ask" style="--d:6.2s">우정아, 나와 결혼해 줄래?</span>
     </div>
     <div class="names">김연준<span class="amp">&amp;</span>신우정</div>
     <div class="rule"></div>
-    <div class="result-line"><span>결과 :</span><span><b>신우정</b>의 승낙 <em>(거절 불가)</em></span></div>
+    <div class="result-line"><span>답 :</span><span><b>신우정</b>의 YES <em>(번복 불가)</em></span></div>
     <div class="date" id="date"></div>
     <div class="stamp">승낙<br>完</div>
   </div>
@@ -421,6 +430,13 @@
     const onL = btn.x <= minX + 0.5, onR = btn.x >= maxX - 0.5;
     const onT = btn.y <= minY + 0.5, onB = btn.y >= maxY - 0.5;
 
+    // YES 버튼에 맞닿아 있는지 (옆면 접촉 → yesX, 위/아래면 접촉 → yesY)
+    const yr = yesBtn.getBoundingClientRect();
+    const ycx = yr.left + yr.width / 2, ycy = yr.top + yr.height / 2;
+    const gapX = Math.abs(btn.x - ycx) - (yr.width / 2 + hw);
+    const gapY = Math.abs(btn.y - ycy) - (yr.height / 2 + hh);
+    const yesX = gapX < 1 && gapY < -hh * .2, yesY = gapY < 1 && gapX < -hw * .2;
+
     // 마우스 속도는 움직임이 멈추면 서서히 0으로
     mouse.vx *= Math.exp(-6 * dt); mouse.vy *= Math.exp(-6 * dt);
 
@@ -445,6 +461,14 @@
         const dir = Math.abs(dx) > hw * .3 ? Math.sign(dx) : Math.sign(W / 2 - btn.x);
         ax += dir * boost;
       }
+      // YES 버튼에 막혔을 때도 그 면을 타고 위/아래(또는 옆)로 돌아서 빠져나감
+      if (yesX && nx * (ycx - btn.x) > 0) {
+        const dir = Math.abs(dy) > hh * .3 ? Math.sign(dy) : (Math.sign(btn.y - ycy) || -1);
+        ay += dir * boost;
+      } else if (yesY && ny * (ycy - btn.y) > 0) {
+        const dir = Math.abs(dx) > hw * .3 ? Math.sign(dx) : (Math.sign(btn.x - ycx) || 1);
+        ax += dir * boost;
+      }
     }
 
     // 적분 (semi-implicit Euler)
@@ -463,8 +487,6 @@
     else if (btn.y > maxY) { btn.y = maxY; if (btn.vy > 0) btn.vy = -btn.vy * PHYS.restitution; btn.vx *= wf; }
 
     // YES 버튼은 단단한 장애물: 겹치면 최소 침투축으로 밀어내고 튕김
-    const yr = yesBtn.getBoundingClientRect();
-    const ycx = yr.left + yr.width / 2, ycy = yr.top + yr.height / 2;
     const px = (yr.width / 2 + hw) - Math.abs(btn.x - ycx);
     const py = (yr.height / 2 + hh) - Math.abs(btn.y - ycy);
     if (px > 0 && py > 0) {
@@ -634,12 +656,13 @@
     startMusic();
     intro.classList.add('hidden');
     question.classList.remove('hidden');
-    // 버튼 등장 애니메이션(1.6s 지연) 이후 NO 버튼을 슬롯 위치에 배치
-    setTimeout(() => {
+    // 등장 애니메이션 동안은 YES 옆 자리표시용 NO가 함께 떠오르고,
+    // 애니메이션이 끝나면 같은 자리에 진짜(도망가는) NO로 바꿔 끼움
+    document.querySelector('.buttons').addEventListener('animationend', () => {
       placeNoAtSlot();
       noBtn.style.visibility = 'visible';
-      noBtn.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 1200, fill: 'forwards' });
-    }, 1700);
+      slot.style.visibility = 'hidden';
+    }, { once: true });
   }, { once: true });
 
   yesBtn.addEventListener('click', () => {
