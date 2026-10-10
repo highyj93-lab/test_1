@@ -4,6 +4,18 @@
 
 ## 실행
 
+### Windows 실행 파일 (권장)
+
+`dist/proposal.exe`를 더블클릭하면 Edge(없으면 Chrome)가 주소창 없는 **전체화면 앱 창**으로 열립니다.
+- 설치가 필요 없는 단일 파일입니다(게임이 실행 파일 안에 내장됨).
+- 종료: `Alt + F4` (창을 닫으면 실행기도 자동 종료)
+- `proposal.exe`와 같은 폴더에 `music.mp3`를 두면 그 음악이 재생됩니다.
+- 처음 실행 시 Windows SmartScreen 경고가 뜨면 `추가 정보 → 실행`을 누르세요(서명되지 않은 파일이라 뜨는 일반 경고).
+
+다시 빌드하려면(Go 1.24+): `./build.sh` → `dist/proposal.exe`
+
+### 브라우저로 직접 실행
+
 ```bash
 cd proposal
 python3 -m http.server 8000
