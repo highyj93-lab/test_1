@@ -7,12 +7,15 @@ Approach:
      the exact stkrt (ownership %) and stkrt_irds (change vs. prior report).
 """
 import json
+import os
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
+from dotenv import load_dotenv
 
-KEY = "378622ae116bf1ce76547f386b09a80ddd3db6d6"
+load_dotenv()
+KEY = os.environ["DART_API_KEY"]
 BASE = "https://opendart.fss.or.kr/api"
 
 
