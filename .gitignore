@@ -10,3 +10,4 @@ docs_cache/
 **/.obsidian/workspace*.json
 **/.obsidian/cache
 .trash/
+data/cache/
