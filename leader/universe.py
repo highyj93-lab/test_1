@@ -30,9 +30,11 @@ def parse_finance(d):
     a1 = actual[-1] if actual else None          # 최근 확정 연도
     a0 = actual[-2] if len(actual) > 1 else None  # 그 전 연도
     e1 = cons[0] if cons else None                # 컨센서스 연도
-    out = {"year_a": a1, "year_e": e1}
+    e2 = cons[1] if len(cons) > 1 else None       # 그다음 컨센서스 연도(있을 때만)
+    out = {"year_a": a1, "year_e": e1, "year_e2": e2}
     for t, k in (("영업이익", "op"), ("EPS", "eps"), ("ROE", "roe")):
         out[f"{k}_a0"], out[f"{k}_a1"], out[f"{k}_e"] = val(t, a0), val(t, a1), val(t, e1)
+        out[f"{k}_e2"] = val(t, e2)
     return out
 
 
@@ -44,7 +46,8 @@ def _growth(new, old):
     return 1.0 if new > 0 else -1.0  # 흑자전환은 +100%, 적자 지속·전환은 -100%로 취급
 
 
-def build(nv, log):
+def build(nv, log, markets=None):
+    """markets: None = KOSPI+KOSDAQ, or e.g. {"KOSPI"} to keep only those markets."""
     groups = nv.industries()
     names = {g["no"]: g["name"] for g in groups}
     stocks = {}
@@ -62,10 +65,12 @@ def build(nv, log):
     log(f"상장 주식 {len(stocks):,}개 (업종 {len(names)}개)")
 
     cands = [s for s in stocks.values()
-             if (s["mcap_eok"] or 0) >= C.MIN_MCAP_EOK
+             if (markets is None or s["market"] in markets)
+             and (s["mcap_eok"] or 0) >= C.MIN_MCAP_EOK
              and "스팩" not in s["name"]
              and not (C.EXCLUDE_PREFERRED and not s["code"].endswith("0"))]
-    log(f"시가총액 {C.MIN_MCAP_EOK}억 이상(우선주·스팩 제외): {len(cands):,}개")
+    scope = "·".join(sorted(markets)) + " " if markets else ""
+    log(f"{scope}시가총액 {C.MIN_MCAP_EOK}억 이상(우선주·스팩 제외): {len(cands):,}개")
 
     first = nv.pmap(lambda s: nv.prices(s["code"], 1), cands)
     universe = []
@@ -102,6 +107,9 @@ def build(nv, log):
         s["inst_net_20d"] = inst if tr else None
         s["frgn_net_20d"] = frgn if tr else None
         s["frgn_ratio"] = num(tr[0].get("foreignerHoldRatio")) if tr else None
+        old_ratio = num(tr[-1].get("foreignerHoldRatio")) if tr else None
+        s["frgn_ratio_chg"] = (s["frgn_ratio"] - old_ratio  # 20일간 보유율 변화(%p)
+                               if s["frgn_ratio"] is not None and old_ratio is not None else None)
 
         eps_fwd = fin.get("eps_e") if fin.get("eps_e") is not None else fin.get("eps_a1")
         s["fwd_per"] = (price / eps_fwd if eps_fwd and eps_fwd > 0 else float("inf")) if eps_fwd is not None else None
@@ -111,6 +119,6 @@ def build(nv, log):
             s["op_growth"] = _growth(fin["op_e"], fin.get("op_a1"))
         else:
             s["op_growth"] = _growth(fin.get("op_a1"), fin.get("op_a0"))
-        s["eps_a1"], s["eps_e"] = fin.get("eps_a1"), fin.get("eps_e")
+        s["eps_a1"], s["eps_e"], s["eps_e2"] = fin.get("eps_a1"), fin.get("eps_e"), fin.get("eps_e2")
         s["op_a1"], s["op_e"] = fin.get("op_a1"), fin.get("op_e")
     return universe

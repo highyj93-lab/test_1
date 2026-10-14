@@ -74,6 +74,22 @@ class DartApiClient:
         """기업개황 (company.json): basic info for a single company."""
         return self._get("company.json", corp_code=corp_code)
 
+    def financial_statements(
+        self, corp_code: str, bsns_year: int, reprt_code: str, fs_div: str = "CFS"
+    ) -> dict:
+        """단일회사 전체 재무제표 (fnlttSinglAcntAll.json).
+
+        reprt_code: 11013 1분기 / 11012 반기 / 11014 3분기 / 11011 사업보고서.
+        fs_div: CFS 연결 / OFS 별도.
+        """
+        return self._get(
+            "fnlttSinglAcntAll.json",
+            corp_code=corp_code,
+            bsns_year=str(bsns_year),
+            reprt_code=reprt_code,
+            fs_div=fs_div,
+        )
+
     def download_corp_codes(self) -> bytes:
         """고유번호 (corpCode.xml): download the full corp-code list as a zip.
 
