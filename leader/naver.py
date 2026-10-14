@@ -42,6 +42,8 @@ class Naver:
         os.makedirs(cache_dir, exist_ok=True)
         self.session = requests.Session()
         self.workers = workers
+        self.blocked = False  # 프록시가 접속을 막으면 이후 요청은 캐시만 사용
+        self.misses = 0
 
     def get(self, path, **params):
         key = path + "?" + "&".join(f"{k}={v}" for k, v in sorted(params.items()))
@@ -49,6 +51,9 @@ class Naver:
         if os.path.exists(fp):
             with open(fp, encoding="utf-8") as f:
                 return json.load(f)
+        if self.blocked:
+            self.misses += 1
+            return None
         for attempt in range(4):
             try:
                 r = self.session.get(f"{BASE}/{path}", params=params, timeout=20)
@@ -59,6 +64,10 @@ class Naver:
                     return data
                 if r.status_code in (400, 404):
                     return None
+            except requests.exceptions.ProxyError:
+                self.blocked = True
+                self.misses += 1
+                return None
             except (requests.RequestException, ValueError):
                 pass
             time.sleep(2 ** attempt)
@@ -97,6 +106,9 @@ class Naver:
 
     def finance_annual(self, code):
         return self.get(f"stock/{code}/finance/annual")
+
+    def finance_quarter(self, code):
+        return self.get(f"stock/{code}/finance/quarter")
 
     def industries(self):
         return (self.get("stocks/industry", page=1, pageSize=100) or {}).get("groups", [])

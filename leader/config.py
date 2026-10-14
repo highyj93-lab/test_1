@@ -41,5 +41,10 @@ HISTORY_MIN_GAP_DAYS = 5    # 순자산·EPS 비교에 쓸 과거 스냅샷 최�
 WEIGHTS = {"rank_mom": 0.40, "smart_money": 0.30, "price_mom": 0.20, "valuation": 0.10}
 GRADES = [(90, "★★★★ 강력 매수"), (80, "★★★ 매수"), (65, "★★ 보유"), (0, "★ 매도 검토")]
 SECTOR_CAP = 3
+
+# KOSPI COMP → F 스코어 워크플로우
+COMP_REPORT_MIN = 70     # 중간 결과 출력 기준
+COMP_FSCORE_MIN = 80     # F 스코어 입력 기준
+F_PASS_MIN = 3           # 최종 통과: F 스코어 4점 만점 중 3점 이상 (계산 가능한 팩터 3개 이상일 때)
 TOP_N = 15
 MIN_PICKS = 10
