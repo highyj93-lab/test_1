@@ -3,7 +3,9 @@
 API docs: https://opendart.fss.or.kr/guide/main.do
 """
 import io
+import json
 import os
+import xml.etree.ElementTree as ET
 import zipfile
 from typing import Any, Optional
 
@@ -40,11 +42,27 @@ class DartApiClient:
         self.timeout = timeout
         self.session = requests.Session()
 
+    def _request(self, endpoint: str, params: dict) -> requests.Response:
+        """GET with the key attached. Network/HTTP errors are re-raised as
+        DartApiError("network", ...) with the key masked, because their messages
+        include the request URL (and therefore crtfc_key)."""
+        try:
+            resp = self.session.get(
+                f"{BASE_URL}/{endpoint}",
+                params={"crtfc_key": self.api_key, **params},
+                timeout=self.timeout,
+            )
+            resp.raise_for_status()
+            return resp
+        except requests.RequestException as e:
+            raise DartApiError("network", str(e).replace(self.api_key, "***")) from None
+
     def _get(self, endpoint: str, **params: Any) -> dict:
-        params = {"crtfc_key": self.api_key, **{k: v for k, v in params.items() if v is not None}}
-        resp = self.session.get(f"{BASE_URL}/{endpoint}", params=params, timeout=self.timeout)
-        resp.raise_for_status()
-        data = resp.json()
+        params = {k: v for k, v in params.items() if v is not None}
+        try:
+            data = self._request(endpoint, params).json()
+        except ValueError:
+            raise DartApiError("network", f"{endpoint}: invalid JSON response") from None
         status = data.get("status")
         if status != _OK_STATUS:
             raise DartApiError(status, data.get("message", "Unknown DART API error"))
@@ -96,12 +114,19 @@ class DartApiClient:
         Returns the raw XML bytes (the API serves a zip containing a single
         CORPCODE.xml file).
         """
-        resp = self.session.get(
-            f"{BASE_URL}/corpCode.xml",
-            params={"crtfc_key": self.api_key},
-            timeout=self.timeout,
-        )
-        resp.raise_for_status()
-        with zipfile.ZipFile(io.BytesIO(resp.content)) as zf:
-            name = zf.namelist()[0]
-            return zf.read(name)
+        body = self._request("corpCode.xml", {}).content
+        if not zipfile.is_zipfile(io.BytesIO(body)):
+            # Errors (bad key, IP, limit, maintenance) come back as HTTP 200 with an XML/JSON status body.
+            status = message = None
+            try:
+                root = ET.fromstring(body)
+                status, message = root.findtext("status"), root.findtext("message")
+            except ET.ParseError:
+                try:
+                    data = json.loads(body)
+                    status, message = data.get("status"), data.get("message")
+                except ValueError:
+                    pass
+            raise DartApiError(status or "network", message or "corpCode.xml: unexpected (non-zip) response")
+        with zipfile.ZipFile(io.BytesIO(body)) as zf:
+            return zf.read(zf.namelist()[0])

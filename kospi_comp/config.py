@@ -16,8 +16,7 @@ LAMBDA = 0.5  # 순위 변동성(표준편차) 벌점 계수
 
 # 단계별 컷
 COMP_REPORT = 70   # 중간 결과 출력
-COMP_FSCORE = 80   # F 스코어 입력
-F_PASS = 3         # 4팩터 중 이 점수 이상이면 최종 통과
+COMP_FSCORE = 80   # F 스코어 입력 (통과 기준 3.0은 kospi_comp/fscore.py PASS)
 
 # 최종 보고 정렬: COMP 오름차순
 FINAL_ASCENDING = True
