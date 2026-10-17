@@ -26,6 +26,14 @@ allowed-tools: Bash(python3 scripts/fscore.py *) Bash(python scripts/fscore.py *
 4. 스크립트를 실행할 수 없는 환경이면 아래 규칙대로 DART 원문 수치를 사용자에게서 받아 직접 계산하되, 같은 규칙과 출력 형식을 지킨다.
 5. 출력 전에 맨 아래 final_check를 스스로 확인한다.
 
+## 사용자가 승인한 보충 규칙
+
+- 판관비: `dart_TotalSellingGeneralAdministrativeExpenses`가 없는 보고서는 같은 개념의 IFRS 표준 ID
+  `ifrs-full_SellingGeneralAndAdministrativeExpense`를 표준 계정으로 쓰고, 사용 사실을 표 아래에 적는다.
+  (보고서마다 두 ID를 번갈아 쓰는 회사가 있음. 2026-10-17 승인)
+- 최신 보고서의 전년 동기 비교값이 처음 공시한 값과 0.5% 넘게 다르면(표시 방법 변경·중단영업 재분류 등)
+  점수는 각 보고서의 당기 값 그대로 두고, 표 아래에 "비교성 확인 필요"로 적는다.
+
 아래는 이 명령의 정의(사용자 원문)다.
 
 <role>
