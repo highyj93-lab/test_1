@@ -79,7 +79,9 @@ def stock_note(r):
         if r["points"][f] is None:
             items.append(f"{FACTOR_NAME[f]} 결측 — {r['missing'].get(f, '값 없음')}")
     if r["company_accounts"]:
-        items.append("회사 고유 계정 사용: " + "; ".join(r["company_accounts"]))
+        items.append("계정 식별: " + "; ".join(r["company_accounts"]))
+    for msg in r["metrics"].get("restated", []):
+        items.append("비교성 확인 필요: " + msg)
     if r["sector"] == UNVERIFIED:
         a, b = r["alt"]["소재 외"], r["alt"]["소재"]
         acc = r["metrics"].get("accruals")

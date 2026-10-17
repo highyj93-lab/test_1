@@ -181,6 +181,36 @@ class TTMAndFactors(unittest.TestCase):
         self.assertEqual(r["metrics"]["rev_cur"], 635)
         self.assertTrue(any("회사 고유 계정" in n and "매출액" in n for n in r["company_accounts"]))
 
+    def test_restated_comparative_is_flagged_not_rescored(self):
+        reports = all_reports()
+        for r_ in reports[(2026, 2, "CFS")]:
+            if r_["account_id"] == "ifrs-full_Revenue":
+                r_["frmtrm_q_amount"] = "145"  # 2025.2Q 처음 공시 135 → 재작성 145
+        r = run("IT", reports)
+        self.assertEqual(r["metrics"]["rev_cur"], 635)  # 점수는 각 보고서 당기 값 그대로
+        self.assertEqual(len(r["metrics"]["restated"]), 1)
+        self.assertIn("2025.2Q 값이 2026.2Q 보고서에서 재작성됨", r["metrics"]["restated"][0])
+        note = fscore_output.stock_note({**r, "code": "000001", "name": "A"})
+        self.assertIn("비교성 확인 필요: 매출", note)
+        unchanged = all_reports()
+        for r_ in unchanged[(2026, 2, "CFS")]:
+            if r_["account_id"] == "ifrs-full_Revenue":
+                r_["frmtrm_q_amount"] = "135"
+        self.assertEqual(run("IT", unchanged)["metrics"]["restated"], [])
+
+    def test_ifrs_sga_element_is_equivalent_and_noted(self):
+        # 실제 공시(세방전지 2025, 한국가스공사 2025 반기)처럼 보고서마다 판관비 ID가 바뀌는 경우
+        reports = all_reports()
+        for (fy, q, _), rows in reports.items():
+            if fy == 2025:
+                for r_ in rows:
+                    if r_["account_id"] == "dart_TotalSellingGeneralAdministrativeExpenses":
+                        r_["account_id"], r_["account_nm"] = "ifrs-full_SellingGeneralAndAdministrativeExpense", "판매 및 일반관리비"
+        r = run("IT", reports)
+        self.assertEqual(r["points"]["sga"], 1)
+        self.assertAlmostEqual(r["metrics"]["sga_ratio_change"], run("IT")["metrics"]["sga_ratio_change"])
+        self.assertTrue(any("ifrs-full_SellingGeneralAndAdministrativeExpense" in n for n in r["company_accounts"]))
+
     def test_other_standard_id_with_same_name_is_null(self):
         ids = {**IDS, "revenue": ("ifrs-full_RevenueFromSaleOfGoods", "매출액", "IS")}
         r = run("IT", all_reports(ids=ids))

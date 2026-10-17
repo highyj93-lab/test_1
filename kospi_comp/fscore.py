@@ -13,7 +13,9 @@ import json
 import os
 import re
 import time
+import threading
 import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 
 from dart_api import DartApiError
@@ -49,6 +51,8 @@ ACCOUNTS = {
     "ocf": ("cumulative", ("CF",), "ifrs-full_CashFlowsFromUsedInOperatingActivities",
             ("영업활동현금흐름", "영업활동으로인한현금흐름")),
 }
+# 지정 표준 ID가 없을 때 쓰는 같은 개념의 다른 표준 ID (IFRS 핵심 택소노미의 판관비 요소). 사용 시 표 아래에 적는다.
+EQUIVALENT_IDS = {"sga": ("ifrs-full_SellingGeneralAndAdministrativeExpense",)}
 ACCOUNT_NAME = {"revenue": "매출", "gross_profit": "매출총이익", "sga": "판관비", "assets": "총자산",
                 "net_income": "당기순이익", "ocf": "영업활동현금흐름"}
 STANDARD_PREFIXES = ("ifrs-full_", "ifrs_", "dart_")
@@ -130,6 +134,11 @@ def find(rows, key):
         hits = [r for r in rows if r.get("sj_div") == sj and r.get("account_id") in std_ids]
         if hits:
             return hits[0], None
+    for alt in EQUIVALENT_IDS.get(key, ()):
+        for sj in sj_divs:
+            hits = [r for r in rows if r.get("sj_div") == sj and r.get("account_id") == alt]
+            if hits:
+                return hits[0], f'{ACCOUNT_NAME[key]}: 같은 개념의 IFRS 표준 ID {alt}("{hits[0].get("account_nm")}") 사용'
     wanted = {_norm(n) for n in names}
     named = [r for r in rows if r.get("sj_div") in sj_divs and _norm(r.get("account_nm")) in wanted]
     own = [r for r in named if not (r.get("account_id") or "").startswith(STANDARD_PREFIXES)]
@@ -318,6 +327,25 @@ class Company:
             return None, f"{self.label(fq)} {ACCOUNT_NAME[key]} 통화 단위 불일치", None
         return cur - prev, None, ccy
 
+    def restatement(self, key, threshold=0.005):
+        """최신 보고서의 전년 동기 비교값이 처음 공시한 값과 다르면 설명 문구(표시 방법 변경·중단영업 등).
+
+        점수는 각 보고서의 당기 값으로 계산하고 바꾸지 않는다. 비교성 확인이 필요하다는 표시만 한다.
+        """
+        fy, q = self.latest
+        row, _ = self._row(key, self.latest)
+        if row is None:
+            return None
+        restated = self._amount(key, row, "frmtrm_amount" if q == 4 else "frmtrm_q_amount")
+        original, _, _ = (self._field(key, (fy - 1, 4), "thstrm_amount", "연간 값") if q == 4
+                          else self.quarter(key, (fy - 1, q)))
+        if restated is None or not original or abs(restated / original - 1) <= threshold:
+            return None
+        prior = self.label((fy - 1, q))
+        return (f"{ACCOUNT_NAME[key]} {prior} 값이 {self.label(self.latest)} 보고서에서 재작성됨"
+                f"(처음 공시 {original / 1e8:,.0f}억 → {restated / 1e8:,.0f}억, {restated / original - 1:+.1%}) — "
+                "표시 방법 변경·중단영업 재분류 등으로 TTM 비교성 확인 필요")
+
     def ttm(self, key, end):
         """end로 끝나는 4개 분기 합 -> (값, 결측 이유, 통화)."""
         vals, ccys = [], set()
@@ -404,6 +432,8 @@ def compute(co):
     else:
         m["net_income"], m["ocf"], m["accruals"], m["accruals_currency"] = ni, ocf, ni - ocf, nc
 
+    m["restated"] = [msg for key in ("revenue", "gross_profit", "sga") if (msg := co.restatement(key))]
+
     points = {
         "revenue_growth": _point(m.get("revenue_growth")),
         "gpm": _point(m.get("gpm_change")),
@@ -452,7 +482,7 @@ def score(co, sector):
 # --- DART 수집 --------------------------------------------------------------
 def write_atomic(fp, data):
     """임시 파일에 쓴 뒤 바꿔치기 — 중단·동시 실행에도 반쯤 쓰인 캐시가 남지 않게."""
-    tmp = f"{fp}.tmp.{os.getpid()}"
+    tmp = f"{fp}.tmp.{os.getpid()}.{threading.get_ident()}"
     with open(tmp, "wb") as f:
         f.write(data)
     os.replace(tmp, fp)
@@ -580,22 +610,30 @@ def resolve(inputs, corps):
     return uniq, ask
 
 
-def evaluate(data, stocks, sectors, as_of):
-    """stocks: resolve() 결과. sectors: {종목코드: WICS 대분류명}. -> 결과 dict 목록.
+def evaluate(data, stocks, sectors, as_of, workers=4):
+    """stocks: resolve() 결과. sectors: {종목코드: WICS 대분류명}. -> 결과 dict 목록(입력 순서).
 
-    한 종목의 DART 오류는 그 종목만 '산정 불가'로 남긴다. 키·IP·한도·점검 오류는 모든 종목에 해당하므로
-    DartApiError를 그대로 올린다.
+    종목은 동시에 workers개씩 조회한다. 한 종목의 DART 오류는 그 종목만 '산정 불가'로 남긴다.
+    키·IP·한도·점검 오류는 모든 종목에 해당하므로 DartApiError를 그대로 올린다.
     """
-    out = []
-    for s in stocks:
+    def one(s):
         base = {"code": s["code"], "name": s["name"], "sector": sectors.get(s["code"]) or UNVERIFIED}
         try:
-            out.append({**base, **_evaluate_one(data, s, sectors, as_of)})
+            return {**base, **_evaluate_one(data, s, sectors, as_of)}
         except DartApiError as e:
             if e.status in FATAL:
                 raise
-            out.append({**base, "error": f"DART 조회 실패({e.status}: {e.message})"})
-    return out
+            return {**base, "error": f"DART 조회 실패({e.status}: {e.message})"}
+
+    with ThreadPoolExecutor(max(1, workers)) as ex:
+        return list(ex.map(one, stocks))
+
+
+def _prefetch(data, corp, fs_div, latest, workers=4):
+    """12월 결산 법인의 계산에 필요한 보고서를 미리 병렬로 받아 캐시에 둔다(값 계산은 Company가 함)."""
+    fqs = required_reports(latest) + [(fy, 1) for fy in {fy for fy, q in required_reports(latest) if q == 4}]
+    with ThreadPoolExecutor(workers) as ex:
+        list(ex.map(lambda fq: data.statements(corp, fq[0], REPORT_CODE[fq[1]], fs_div), sorted(set(fqs))))
 
 
 def _evaluate_one(data, s, sectors, as_of):
@@ -608,5 +646,7 @@ def _evaluate_one(data, s, sectors, as_of):
     if fs_div == "MIXED":
         return {"error": f"{qlabel(latest)} 보고서에 연결재무제표가 없지만 이전 보고서는 연결 공시 — "
                          "연결·별도를 섞지 않으려고 산정 보류(검증 필요)"}
+    if acc_mt == "12" and hasattr(data, "cache_dir"):
+        _prefetch(data, s["corp_code"], fs_div, latest)
     co = Company(data.statements, s["corp_code"], fs_div, latest, acc_mt, as_of)
     return {**score(co, sectors.get(s["code"])), "acc_mt": acc_mt, "error": None}
