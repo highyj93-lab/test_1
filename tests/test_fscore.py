@@ -316,6 +316,45 @@ class ReviewRegressions(unittest.TestCase):
             fscore.evaluate(Fatal(), stocks, {}, date(2026, 10, 17))
 
 
+class Wics(unittest.TestCase):
+    def test_probe_back_padding_ambiguity_and_broken_cache(self):
+        import tempfile
+        from kospi_comp import wics
+
+        class Resp:
+            def __init__(self, data):
+                self.data = data
+
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return self.data
+
+        class Session:
+            def get(self, url, params, headers, timeout):
+                if params["dt"] > "20261016":  # 토요일·미공표
+                    return Resp({"info": {"CNT": 0}, "list": []})
+                rows = {"G15": [{"CMP_CD": "5490", "SEC_CD": "G15"}], "G45": [{"CMP_CD": "005930", "SEC_CD": "G45"}],
+                        "G20": [{"CMP_CD": "111110", "SEC_CD": "G20"}],
+                        "G25": [{"CMP_CD": "111110", "SEC_CD": "G25"}]}.get(
+                    params["sec_cd"], [{"CMP_CD": "999990", "SEC_CD": params["sec_cd"]}])
+                return Resp({"info": {"CNT": len(rows)}, "list": rows})
+
+        tmp = tempfile.mkdtemp()
+        m, src = wics.fetch(date(2026, 10, 17), tmp, session=Session(), pause=0)
+        self.assertEqual((m["005490"], m["005930"]), ("소재", "IT"))
+        self.assertNotIn("111110", m)  # 두 대분류에 나오면 불명확 → 검증 필요
+        self.assertIn("2026-10-16", src)
+        with open(os.path.join(tmp, "wics_20261017.json"), "w") as f:
+            f.write('{"005930": "I')  # 쓰다 만 캐시
+        m2, _ = wics.fetch(date(2026, 10, 17), tmp, session=Session(), pause=0)
+        self.assertEqual(m2, m)
+        self.assertEqual(wics.parse_overrides(["005490=소재"]), {"005490": "소재"})
+        with self.assertRaises(ValueError):
+            wics.parse_overrides(["005930=반도체"])
+
+
 class Cli(unittest.TestCase):
     def setUp(self):
         import importlib.util

@@ -11,6 +11,8 @@ from datetime import timedelta
 
 import requests
 
+from .fscore import write_atomic
+
 URL = "https://www.wiseindex.com/Index/GetIndexComponets"  # 'Componets' 철자가 실제 경로
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
                          "Chrome/126.0 Safari/537.36",
@@ -43,8 +45,11 @@ def fetch(as_of, cache_dir, max_back=14, session=None, pause=0.5):
         day = as_of - timedelta(days=back)
         fp = os.path.join(cache_dir, f"wics_{day:%Y%m%d}.json")
         if os.path.exists(fp):
-            with open(fp, encoding="utf-8") as f:
-                return json.load(f), f"WISEindex {day:%Y-%m-%d} WICS 대분류 구성종목"
+            try:
+                with open(fp, encoding="utf-8") as f:
+                    return json.load(f), f"WISEindex {day:%Y-%m-%d} WICS 대분류 구성종목"
+            except (ValueError, OSError):
+                os.remove(fp)  # 쓰다 만 캐시는 지우고 다시 조회
         lists = {}
         try:
             for code in SECTORS:
@@ -65,8 +70,7 @@ def fetch(as_of, cache_dir, max_back=14, session=None, pause=0.5):
                     mapping.setdefault(stock, set()).add(sector)
         # 한 종목이 둘 이상의 대분류에 나오면 불명확 → 결과에서 뺀다(검증 필요)
         result = {k: next(iter(v)) for k, v in mapping.items() if len(v) == 1}
-        with open(fp, "w", encoding="utf-8") as f:
-            json.dump(result, f, ensure_ascii=False)
+        write_atomic(fp, json.dumps(result, ensure_ascii=False).encode("utf-8"))
         return result, f"WISEindex {day:%Y-%m-%d} WICS 대분류 구성종목"
     return {}, f"WISEindex에서 최근 {max_back}일 안의 구성종목을 찾지 못함"
 
