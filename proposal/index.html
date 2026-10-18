@@ -147,18 +147,28 @@
   }
   .rule { width: 46%; height: 1px; margin: 0 auto; background: linear-gradient(90deg, transparent, #b99a63, transparent); }
   .vow .lines { margin: 16px 0 14px; font-size: clamp(12px, 2.6vw, 13.5px); line-height: 1.85; color: #4a4655; }
-  .vow .lines span { display: block; opacity: 0; transform: translateY(6px); transition: opacity 1s, transform 1s; transition-delay: var(--d); }
+  .vow .lines span { display: block; opacity: 0; transform: translateY(6px); transition: opacity 2s ease, transform 2s ease; transition-delay: var(--d); }
   .vow .lines .poem { font-style: italic; color: #4a4655; font-size: 1.12em; line-height: 1.9; }
   .vow .lines .gap { height: .7em; }
   .vow .lines .src { font-size: 10.5px; color: #a39a86; letter-spacing: .04em; margin-top: .5em; }
   .vow .lines .ask { color: #2a2f45; font-weight: 700; }
+  .vow .lines .propose { color: #b5566d; font-weight: 700; font-size: 1.22em; letter-spacing: .04em; }
   #result.show .lines span { opacity: 1; transform: none; }
+  /* 세로가 낮은 화면(노트북 등)에서는 카드를 조금 압축 */
+  @media (max-height: 680px) {
+    .vow { padding-top: 22px; padding-bottom: 18px; }
+    .vow h2 { margin: 4px 0 8px; font-size: 32px; }
+    .vow .lines { margin: 10px 0 8px; line-height: 1.6; }
+    .vow .lines .gap { height: .4em; }
+    .names { margin-bottom: 8px; }
+    .result-line { margin-top: 10px; }
+  }
   .names {
     position: relative; display: inline-block;
     font-family: "Nanum Pen Script", "Nanum Myeongjo", cursive;
     font-size: clamp(30px, 7vw, 40px); color: #2a2f45; margin-bottom: 14px;
     clip-path: inset(0 100% 0 0);
-    transition: clip-path 2.6s steps(40, end) 6.3s;
+    transition: clip-path 3.6s steps(40, end) 15s;
   }
   #result.show .names { clip-path: inset(0 0 0 0); }
   .names .amp { color: #b5566d; margin: 0 .25em; }
@@ -175,7 +185,7 @@
     display: flex; align-items: center; justify-content: center; text-align: center;
     font-size: 13px; font-weight: 700; line-height: 1.15;
     transform: rotate(-14deg) scale(2.4); opacity: 0;
-    transition: transform .35s cubic-bezier(.5,2,.5,.8) 9.3s, opacity .25s 9.3s;
+    transition: transform .35s cubic-bezier(.5,2,.5,.8) 19.2s, opacity .25s 19.2s;
   }
   #result.show .stamp { transform: rotate(-14deg) scale(1); opacity: 1; }
   .date { margin-top: 10px; font-size: 11px; color: #8d8697; letter-spacing: .12em; }
@@ -184,7 +194,7 @@
     position: fixed; right: 26px; bottom: 20px; z-index: 8;
     font-family: "Nanum Myeongjo", serif; font-size: 11px; letter-spacing: .1em;
     color: rgba(216, 191, 138, .7);
-    opacity: 0; transition: opacity 2s ease 10.1s;
+    opacity: 0; transition: opacity 2s ease 20.2s;
   }
   #result.show #credit { opacity: 1; }
 
@@ -252,14 +262,16 @@
     <h2>청혼서</h2>
     <div class="rule"></div>
     <div class="lines">
-      <span class="poem" style="--d:1.6s">널 만나서 정말 기뻤어</span>
-      <span class="poem" style="--d:2.2s">너와의 시간은 내 인생 최고의 순간들이었어</span>
-      <span class="poem" style="--d:2.8s">난 그걸 절대로 후회하지 않아</span>
-      <span class="poem" style="--d:3.4s">고마워 진심으로</span>
+      <span class="poem" style="--d:2s">널 만나서 정말 기뻤어</span>
+      <span class="poem" style="--d:3.4s">너와의 시간은 내 인생 최고의 순간들이었어</span>
+      <span class="poem" style="--d:4.8s">난 그걸 절대로 후회하지 않아</span>
+      <span class="poem" style="--d:6.2s">고마워 진심으로</span>
       <span class="gap"></span>
-      <span class="poem ask" style="--d:4.3s">너를 만나기 위해 이 모든 일을 다시 겪으라면,</span>
-      <span class="poem ask" style="--d:4.9s">나는 그렇게 할거야</span>
-      <span class="src" style="--d:5.6s">— 『그믐, 또는 당신이 세계를 기억하는 방식』 中, 장강명</span>
+      <span class="poem ask" style="--d:8s">너를 만나기 위해 이 모든 일을 다시 겪으라면,</span>
+      <span class="poem ask" style="--d:9.4s">나는 그렇게 할거야</span>
+      <span class="src" style="--d:10.8s">— 『그믐, 또는 당신이 세계를 기억하는 방식』 中, 장강명</span>
+      <span class="gap"></span>
+      <span class="propose" style="--d:12.6s">우정아, 나와 결혼해 줄래?</span>
     </div>
     <div class="names">김연준<span class="amp">&amp;</span>신우정</div>
     <div class="rule"></div>
@@ -525,8 +537,8 @@
   noBtn.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); });
 
   /* ================================================================
-   *  4. 음악 — 파헬벨 「캐논 D장조」(퍼블릭 도메인)를 Web Audio로 직접 연주
-   *     proposal/music.mp3 파일을 넣어두면 그 파일을 우선 재생
+   *  4. 음악 — music.mp3 (Marriage) 를 반복 재생
+   *     파일을 불러오지 못하면 파헬벨 「캐논 D장조」(퍼블릭 도메인)를 Web Audio로 직접 연주
    * ================================================================ */
   const musicBtn = document.getElementById('music');
   let audioCtx = null, master = null, synthTimer = 0, nextTime = 0, step = 0, muted = false;

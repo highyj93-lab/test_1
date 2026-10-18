@@ -2,10 +2,11 @@
 //
 // index.html 을 실행 파일 안에 내장하고, 로컬 서버(127.0.0.1)를 띄운 뒤
 // Edge/Chrome 을 앱 모드 전체화면으로 열어 보여준다.
-// 실행 파일과 같은 폴더에 music.mp3 가 있으면 그 음악을 재생한다.
+// 배경음악(music.mp3)도 내장하며, 실행 파일과 같은 폴더에 music.mp3 가 있으면 그 파일을 대신 재생한다.
 package main
 
 import (
+	"bytes"
 	_ "embed"
 	"fmt"
 	"net"
@@ -21,6 +22,9 @@ import (
 
 //go:embed index.html
 var indexHTML string
+
+//go:embed music.mp3
+var musicMP3 []byte
 
 // 브라우저 창이 닫혔는지 알기 위한 하트비트. 페이지가 3초마다 /ping 을 보낸다.
 const heartbeat = `<script>setInterval(()=>fetch('/ping').catch(()=>{}),3000)</script>`
@@ -48,7 +52,11 @@ func main() {
 		fmt.Fprint(w, page)
 	})
 	mux.HandleFunc("/music.mp3", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, filepath.Join(exeDir, "music.mp3"))
+		if f := filepath.Join(exeDir, "music.mp3"); fileExists(f) {
+			http.ServeFile(w, r, f)
+			return
+		}
+		http.ServeContent(w, r, "music.mp3", time.Time{}, bytes.NewReader(musicMP3))
 	})
 	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 		lastPing.Store(time.Now().UnixNano())
@@ -147,6 +155,11 @@ func openDefaultBrowser(url string) {
 	if err := cmd.Start(); err != nil {
 		fatal("브라우저를 열지 못했습니다. 직접 접속해 주세요: " + url)
 	}
+}
+
+func fileExists(path string) bool {
+	st, err := os.Stat(path)
+	return err == nil && !st.IsDir()
 }
 
 func fatal(msg string) {
