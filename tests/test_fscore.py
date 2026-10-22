@@ -211,6 +211,27 @@ class TTMAndFactors(unittest.TestCase):
         self.assertAlmostEqual(r["metrics"]["sga_ratio_change"], run("IT")["metrics"]["sga_ratio_change"])
         self.assertTrue(any("ifrs-full_SellingGeneralAndAdministrativeExpense" in n for n in r["company_accounts"]))
 
+    def test_consolidated_net_income_company_account(self):
+        # 실제 공시(삼영 2025 분기·반기): ifrs-full_ProfitLoss 대신 회사 고유 계정 '연결당기순이익'
+        reports = all_reports()
+        for (fy, q, _), rows in reports.items():
+            if fy == 2025 and q < 4:
+                for r_ in rows:
+                    if r_["account_id"] == "ifrs-full_ProfitLoss":
+                        r_["account_id"], r_["account_nm"] = "-표준계정코드 미사용-", "연결당기순이익"
+                        rows.append({**r_, "account_nm": "연결계속 당기순이익"})  # 같은 값의 계속영업 행
+                        break
+        r = run("소재", reports)
+        self.assertEqual(r["metrics"]["accruals"], 40 - 60)
+        self.assertTrue(any("연결당기순이익" in n for n in r["company_accounts"]))
+        only_continuing = all_reports()
+        for (fy, q, _), rows in only_continuing.items():
+            if fy == 2025 and q < 4:
+                for r_ in rows:
+                    if r_["account_id"] == "ifrs-full_ProfitLoss":
+                        r_["account_id"], r_["account_nm"] = "-표준계정코드 미사용-", "연결계속 당기순이익"
+        self.assertIsNone(run("소재", only_continuing)["points"]["accruals"])
+
     def test_other_standard_id_with_same_name_is_null(self):
         ids = {**IDS, "revenue": ("ifrs-full_RevenueFromSaleOfGoods", "매출액", "IS")}
         r = run("IT", all_reports(ids=ids))

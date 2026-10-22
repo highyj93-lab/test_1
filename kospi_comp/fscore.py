@@ -47,7 +47,10 @@ ACCOUNTS = {
     "sga": ("flow", ("IS", "CIS"), "dart_TotalSellingGeneralAdministrativeExpenses", ("판매비와관리비",)),
     "assets": ("balance", ("BS",), "ifrs-full_Assets", ("자산총계",)),
     "net_income": ("flow", ("IS", "CIS"), "ifrs-full_ProfitLoss",
-                   ("당기순이익", "당기순이익(손실)", "분기순이익", "분기순이익(손실)", "반기순이익", "반기순이익(손실)")),
+                   ("당기순이익", "당기순이익(손실)", "분기순이익", "분기순이익(손실)", "반기순이익", "반기순이익(손실)",
+                    # 연결 전체(지배+비지배) 순이익을 회사 고유 계정으로 공시하는 경우. '연결계속 …'(계속영업만)은 제외
+                    "연결당기순이익", "연결당기순이익(손실)", "연결분기순이익", "연결분기순이익(손실)",
+                    "연결반기순이익", "연결반기순이익(손실)")),
     "ocf": ("cumulative", ("CF",), "ifrs-full_CashFlowsFromUsedInOperatingActivities",
             ("영업활동현금흐름", "영업활동으로인한현금흐름")),
 }
