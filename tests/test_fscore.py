@@ -406,6 +406,36 @@ class Wics(unittest.TestCase):
             wics.parse_overrides(["005930=반도체"])
 
 
+class WicsResilience(unittest.TestCase):
+    def test_retry_then_saved_snapshot_fallback(self):
+        import tempfile
+        import json as _json
+        from kospi_comp import wics
+        root = tempfile.mkdtemp()
+        old = os.path.join(root, "2026-10-17", "wics")
+        os.makedirs(old)
+        with open(os.path.join(old, "wics_20261016.json"), "w", encoding="utf-8") as f:
+            _json.dump({"005490": "소재"}, f, ensure_ascii=False)
+
+        class Down:
+            calls = 0
+
+            def get(self, *a, **k):
+                Down.calls += 1
+                raise requests.ConnectionError("reset")
+
+        with mock.patch.object(wics.time, "sleep", lambda s: None):
+            m, src = wics.fetch(date(2026, 10, 23), os.path.join(root, "2026-10-24", "wics"), session=Down(), pause=0)
+        self.assertEqual(m, {"005490": "소재"})
+        self.assertIn("2026-10-16", src)
+        self.assertIn("직전 스냅샷", src)
+        self.assertEqual(Down.calls, 4)  # 재시도 후 포기
+        with mock.patch.object(wics.time, "sleep", lambda s: None):  # 기간 밖 스냅샷은 쓰지 않음
+            m2, src2 = wics.fetch(date(2026, 11, 30), os.path.join(root, "2026-12-01", "wics"), session=Down(), pause=0)
+        self.assertEqual(m2, {})
+        self.assertIn("조회 실패", src2)
+
+
 class Cli(unittest.TestCase):
     def setUp(self):
         import importlib.util
