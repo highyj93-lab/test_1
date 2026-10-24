@@ -30,9 +30,11 @@ def parse_finance(d):
     a1 = actual[-1] if actual else None          # 최근 확정 연도
     a0 = actual[-2] if len(actual) > 1 else None  # 그 전 연도
     e1 = cons[0] if cons else None                # 컨센서스 연도
-    out = {"year_a": a1, "year_e": e1}
+    e2 = cons[1] if len(cons) > 1 else None       # 그다음 컨센서스 연도(있을 때만)
+    out = {"year_a": a1, "year_e": e1, "year_e2": e2}
     for t, k in (("영업이익", "op"), ("EPS", "eps"), ("ROE", "roe")):
         out[f"{k}_a0"], out[f"{k}_a1"], out[f"{k}_e"] = val(t, a0), val(t, a1), val(t, e1)
+        out[f"{k}_e2"] = val(t, e2)
     return out
 
 
@@ -160,6 +162,6 @@ def build(nv, log, markets=None, quarterly=False):
             s["op_growth"] = _growth(fin["op_e"], fin.get("op_a1"))
         else:
             s["op_growth"] = _growth(fin.get("op_a1"), fin.get("op_a0"))
-        s["eps_a1"], s["eps_e"] = fin.get("eps_a1"), fin.get("eps_e")
+        s["eps_a1"], s["eps_e"], s["eps_e2"] = fin.get("eps_a1"), fin.get("eps_e"), fin.get("eps_e2")
         s["op_a1"], s["op_e"] = fin.get("op_a1"), fin.get("op_e")
     return universe
